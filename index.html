@@ -6,42 +6,60 @@
   <title>Health Tracker — Data Entry</title>
   <style>
     :root { color-scheme: dark; }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0b0f14; color:#e6edf3; }
-    header{ padding:20px; border-bottom:1px solid #1f2a34; display:flex; align-items:center; justify-content:space-between;}
+    /* --- Base (mobile first) --- */
+    body{ margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:#0b0f14; color:#e6edf3; }
+    header{ position:sticky; top:0; z-index:10; backdrop-filter:saturate(120%) blur(4px);
+      background:rgba(11,15,20,.72); padding:14px 16px; border-bottom:1px solid #1f2a34; display:flex; align-items:center; justify-content:space-between;}
     a{ color:#7cc7ff; text-decoration:none; }
-    .container{ max-width:880px; margin:32px auto; padding:0 16px; }
-    .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
-    h1{ margin:0 0 8px; font-size:24px;}
-    p.muted{ color:#9fb3c8; margin-top:0 }
-    form{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; margin-top:8px;}
-    label{ font-size:14px; color:#c8d4e0 }
-    input{ margin-top:6px; width:100%; padding:12px; border-radius:10px; border:1px solid #243342; background:#0b1117; color:#e6edf3; }
-    .actions{ grid-column:1/-1; display:flex; gap:12px; align-items:center; }
-    button{ padding:12px 18px; border-radius:10px; border:1px solid #2b3b4c; background:#1a2533; color:#e6edf3; cursor:pointer; }
-    button:hover{ filter:brightness(1.1);}
+    .container{ max-width:880px; margin:16px auto 48px; padding:0 12px; }
+    .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
+    h1{ margin:4px 0 6px; font-size:22px; line-height:1.2;}
+    p.muted{ color:#9fb3c8; margin:0 0 12px; font-size:14px }
+
+    /* Form: single column on phones */
+    form{ display:grid; grid-template-columns:1fr; gap:12px; margin-top:4px;}
+    label{ font-size:14px; color:#c8d4e0; display:block }
+    input{ margin-top:6px; width:100%; padding:14px 12px; border-radius:12px; border:1px solid #243342; background:#0b1117; color:#e6edf3; font-size:16px; }
+    input[type="number"]{ -moz-appearance:textfield; }
+    input::-webkit-outer-spin-button, input::-webkit-inner-spin-button{ -webkit-appearance:none; margin:0; }
+    .actions{ display:flex; gap:10px; align-items:center; }
+    button{ padding:14px 18px; border-radius:12px; border:1px solid #2b3b4c; background:#1a2533; color:#e6edf3; font-size:16px; touch-action:manipulation; }
+    button:active{ transform:translateY(1px); }
     .tip{ color:#8aa6bf; font-size:12px;}
 
     /* Calendar */
-    .calendar{ margin-top:30px; }
-    table{ width:100%; border-collapse:collapse; }
-    th, td{ text-align:center; padding:10px; }
-    th{ color:#9fb3c8; }
-    td{ border:1px solid #1f2a34; border-radius:6px; cursor:pointer; user-select:none; }
-    .done{ background:#1e4028; color:#9ff2b0; }
-    .missed{ background:#402020; color:#ffb0b0; }
-    td:empty{ cursor:default; background:transparent; border:none; }
+    .calendar{ margin-top:18px; }
+    h2{ font-size:20px; margin:10px 0 8px; }
+    table{ width:100%; border-collapse:separate; border-spacing:6px; table-layout:fixed; }
+    th{ color:#9fb3c8; font-weight:600; font-size:12px; }
+    td{ text-align:center; padding:0; border:1px solid #1f2a34; border-radius:10px; cursor:pointer; user-select:none; aspect-ratio: 1 / 1; font-weight:600; }
+    td span{ display:flex; align-items:center; justify-content:center; height:100%; width:100%; }
+    .done{ background:#1e4028; color:#bdf7c9; }
+    .missed{ background:#3a2323; color:#ffc1c1; }
+    td:empty{ cursor:default; border:none; background:transparent; }
+
+    /* --- Tablets / desktop --- */
+    @media (min-width: 600px){
+      .container{ margin-top:24px; padding:0 16px; }
+      .card{ padding:24px; }
+      h1{ font-size:24px }
+      form{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:16px; }
+      .actions{ grid-column:1/-1; }
+      h2{ font-size:22px }
+      th{ font-size:13px }
+    }
   </style>
 </head>
 <body>
   <header>
     <div><strong>Health Tracker</strong> — Daily FBS & BP</div>
-    <nav><a href="dashboard.html">Go to Dashboard →</a></nav>
+    <nav><a href="dashboard.html">Dashboard →</a></nav>
   </header>
 
   <main class="container">
     <div class="card">
       <h1>Enter Today’s Readings</h1>
-      <p class="muted">Minimal dark interface. Data stays in this browser (localStorage).</p>
+      <p class="muted">Data is saved to a secure Google Sheet so you can see it anywhere.</p>
 
       <form id="entry-form">
         <div>
@@ -51,17 +69,17 @@
         </div>
         <div>
           <label>Fasting Blood Sugar (mg/dL)
-            <input type="number" id="fbs" inputmode="decimal" min="40" max="400" step="1" required />
+            <input type="number" id="fbs" inputmode="numeric" min="40" max="400" step="1" required />
           </label>
         </div>
         <div>
           <label>Systolic BP (mmHg)
-            <input type="number" id="sbp" min="60" max="250" step="1" required />
+            <input type="number" id="sbp" inputmode="numeric" min="60" max="250" step="1" required />
           </label>
         </div>
         <div>
           <label>Diastolic BP (mmHg)
-            <input type="number" id="dbp" min="40" max="150" step="1" required />
+            <input type="number" id="dbp" inputmode="numeric" min="40" max="150" step="1" required />
           </label>
         </div>
 
@@ -80,80 +98,70 @@
   </main>
 
   <script>
+    const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE'; // same as before
+
     // Pre-fill today
     document.getElementById('date').valueAsDate = new Date();
 
-    function readData(){
-      try { return JSON.parse(localStorage.getItem('healthEntries')||'[]'); }
-      catch { return []; }
+    async function fetchRows(){
+      const res = await fetch(`${API_URL}?mode=fetch`);
+      const data = await res.json();
+      return (data && data.ok) ? data.rows : [];
     }
-    function writeData(arr){
-      localStorage.setItem('healthEntries', JSON.stringify(arr));
+    async function saveRow(row){
+      const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(row) });
+      const data = await res.json().catch(()=>({ok:false}));
+      return data.ok;
     }
 
-    document.getElementById('entry-form').addEventListener('submit', (e)=>{
-      e.preventDefault();
-      const date = document.getElementById('date').value;
-      const fbs  = Number(document.getElementById('fbs').value);
-      const sbp  = Number(document.getElementById('sbp').value);
-      const dbp  = Number(document.getElementById('dbp').value);
-
-      if(!date || isNaN(fbs) || isNaN(sbp) || isNaN(dbp)){
-        document.getElementById('status').textContent = 'Please fill all fields correctly.';
-        return;
-      }
-      const entries = readData();
-      const i = entries.findIndex(x=>x.date===date);
-      const record = { date, fbs, sbp, dbp };
-      if(i>=0) entries[i]=record; else entries.push(record);
-
-      entries.sort((a,b)=> a.date.localeCompare(b.date));
-      writeData(entries);
-
-      document.getElementById('status').textContent = 'Saved ✔ — Calendar updated.';
-      setTimeout(()=>document.getElementById('status').textContent='', 2000);
-      e.target.reset();
-      document.getElementById('date').value = date;
-      buildCalendar(); // refresh calendar colors
-    });
-
-    function buildCalendar(){
+    async function buildCalendar(){
       const now = new Date();
       const year = now.getFullYear();
-      const month = now.getMonth(); // 0-based
+      const month = now.getMonth();
       const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
       document.getElementById('monthName').textContent = `${monthNames[month]} ${year}`;
 
-      const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+      const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month+1, 0).getDate();
-      const entryDates = new Set(readData().map(e=>e.date));
+      const rows = await fetchRows();
+      const datesWithEntries = new Set(rows.map(r=>r.date));
 
       let html = "<tr>";
       ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=> html += `<th>${d}</th>`);
       html += "</tr><tr>";
-
-      for(let i=0; i<firstDay; i++) html += "<td></td>";
+      for(let i=0;i<firstDay;i++) html += "<td></td>";
 
       for(let day=1; day<=daysInMonth; day++){
         const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-        const has = entryDates.has(dateStr);
-        const cls = has ? "done" : "missed";
-        const title = has ? "Entry saved — open dashboard" : "No entry yet — open dashboard";
-        html += `<td class="${cls}" data-date="${dateStr}" title="${title}">${day}</td>`;
+        const cls = datesWithEntries.has(dateStr) ? "done" : "missed";
+        html += `<td class="${cls}" data-date="${dateStr}"><span>${day}</span></td>`;
         if((firstDay + day) % 7 === 0) html += "</tr><tr>";
       }
       html += "</tr>";
       const table = document.getElementById('calendarTable');
       table.innerHTML = html;
 
-      // Make cells clickable → go to dashboard highlighting that  date
       table.querySelectorAll('td[data-date]').forEach(td=>{
-        td.addEventListener('click', ()=>{
-          const d = td.getAttribute('data-date');
-          location.href = `dashboard.html?date=${d}`;
-        });
+        td.addEventListener('click', ()=> location.href = `dashboard.html?date=${td.dataset.date}`);
       });
     }
+
+    document.getElementById('entry-form').addEventListener('submit', async (e)=>{
+      e.preventDefault();
+      const date = document.getElementById('date').value;
+      const fbs  = Number(document.getElementById('fbs').value);
+      const sbp  = Number(document.getElementById('sbp').value);
+      const dbp  = Number(document.getElementById('dbp').value);
+      if(!date || isNaN(fbs) || isNaN(sbp) || isNaN(dbp)){
+        document.getElementById('status').textContent = 'Please fill all fields correctly.';
+        return;
+      }
+      document.getElementById('status').textContent = 'Saving…';
+      const ok = await saveRow({ date, fbs, sbp, dbp, device: navigator.userAgent.slice(0,50) });
+      document.getElementById('status').textContent = ok ? 'Saved ✔' : 'Save failed. Check internet.';
+      if(ok) buildCalendar();
+      setTimeout(()=>document.getElementById('status').textContent='', 2000);
+    });
 
     buildCalendar();
   </script>
