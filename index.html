@@ -8,7 +8,7 @@
   <!-- PWA -->
   <link rel="manifest" href="manifest.webmanifest">
   <meta name="theme-color" content="#0b0f14">
-  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icon/icon-192.png">
 
   <style>
     :root { color-scheme: dark; }
@@ -172,7 +172,7 @@
     buildCalendar();
   </script>
 
-  <!-- PWA: register service worker (place just before </body>) -->
+  <!-- PWA: register service worker -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('./sw.js').catch(console.error);
