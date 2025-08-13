@@ -1,5 +1,5 @@
 // Simple offline-first shell for your GitHub Pages site under /Suja/
-const CACHE_NAME = "mhm-v1";
+const CACHE_NAME = "mhm-v2";
 const STATIC_ASSETS = [
   "./",
   "./index.html",
