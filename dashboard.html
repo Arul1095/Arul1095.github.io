@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Health Tracker — Dashboard</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#0b0f14">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+
   <style>
     :root { color-scheme: dark; }
     body{ margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:#0b0f14; color:#e6edf3; }
@@ -40,7 +46,7 @@
   </main>
 
   <script>
-    const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
+    const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE'; // same as in index.html
     const params = new URLSearchParams(location.search);
     const selectedDate = params.get('date');
 
@@ -100,6 +106,13 @@
       }
       if(selIndex>=0){ showTooltip(fbsChart,1,selIndex); showTooltip(bpChart,2,selIndex); }
     })();
+  </script>
+
+  <!-- PWA: register service worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(console.error);
+    }
   </script>
 </body>
 </html>
