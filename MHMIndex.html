@@ -20,6 +20,16 @@
     button{ padding:12px 18px; border-radius:10px; border:1px solid #2b3b4c; background:#1a2533; color:#e6edf3; cursor:pointer; }
     button:hover{ filter:brightness(1.1);}
     .tip{ color:#8aa6bf; font-size:12px;}
+
+    /* Calendar */
+    .calendar{ margin-top:30px; }
+    table{ width:100%; border-collapse:collapse; }
+    th, td{ text-align:center; padding:10px; }
+    th{ color:#9fb3c8; }
+    td{ border:1px solid #1f2a34; border-radius:6px; cursor:pointer; user-select:none; }
+    .done{ background:#1e4028; color:#9ff2b0; }
+    .missed{ background:#402020; color:#ffb0b0; }
+    td:empty{ cursor:default; background:transparent; border:none; }
   </style>
 </head>
 <body>
@@ -60,11 +70,17 @@
           <span class="tip" id="status"></span>
         </div>
       </form>
+
+      <!-- Calendar -->
+      <div class="calendar">
+        <h2>Submission Calendar — <span id="monthName"></span></h2>
+        <table id="calendarTable"></table>
+      </div>
     </div>
   </main>
 
   <script>
-    // pre-fill today
+    // Pre-fill today
     document.getElementById('date').valueAsDate = new Date();
 
     function readData(){
@@ -82,26 +98,64 @@
       const sbp  = Number(document.getElementById('sbp').value);
       const dbp  = Number(document.getElementById('dbp').value);
 
-      // basic validation
       if(!date || isNaN(fbs) || isNaN(sbp) || isNaN(dbp)){
         document.getElementById('status').textContent = 'Please fill all fields correctly.';
         return;
       }
       const entries = readData();
-      // replace if same date exists
       const i = entries.findIndex(x=>x.date===date);
       const record = { date, fbs, sbp, dbp };
       if(i>=0) entries[i]=record; else entries.push(record);
 
-      // sort by date
       entries.sort((a,b)=> a.date.localeCompare(b.date));
       writeData(entries);
 
-      document.getElementById('status').textContent = 'Saved ✔  — View it in Dashboard.';
-      (setTimeout(()=>document.getElementById('status').textContent='', 2500));
-      (e.target).reset();
-      document.getElementById('date').value = date; // keep same date
+      document.getElementById('status').textContent = 'Saved ✔ — Calendar updated.';
+      setTimeout(()=>document.getElementById('status').textContent='', 2000);
+      e.target.reset();
+      document.getElementById('date').value = date;
+      buildCalendar(); // refresh calendar colors
     });
+
+    function buildCalendar(){
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth(); // 0-based
+      const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+      document.getElementById('monthName').textContent = `${monthNames[month]} ${year}`;
+
+      const firstDay = new Date(year, month, 1).getDay(); // 0=Sun
+      const daysInMonth = new Date(year, month+1, 0).getDate();
+      const entryDates = new Set(readData().map(e=>e.date));
+
+      let html = "<tr>";
+      ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].forEach(d=> html += `<th>${d}</th>`);
+      html += "</tr><tr>";
+
+      for(let i=0; i<firstDay; i++) html += "<td></td>";
+
+      for(let day=1; day<=daysInMonth; day++){
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+        const has = entryDates.has(dateStr);
+        const cls = has ? "done" : "missed";
+        const title = has ? "Entry saved — open dashboard" : "No entry yet — open dashboard";
+        html += `<td class="${cls}" data-date="${dateStr}" title="${title}">${day}</td>`;
+        if((firstDay + day) % 7 === 0) html += "</tr><tr>";
+      }
+      html += "</tr>";
+      const table = document.getElementById('calendarTable');
+      table.innerHTML = html;
+
+      // Make cells clickable → go to dashboard highlighting that date
+      table.querySelectorAll('td[data-date]').forEach(td=>{
+        td.addEventListener('click', ()=>{
+          const d = td.getAttribute('data-date');
+          location.href = `dashboard.html?date=${d}`;
+        });
+      });
+    }
+
+    buildCalendar();
   </script>
 </body>
 </html>
