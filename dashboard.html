@@ -46,14 +46,23 @@
   </main>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxc8qso8lPsqqnf0gWegHno_HTbQ1JSohkH-zLRXKbHmYV2oDwT1B-TlHGQh5djsv7z/exec'; // same as in index.html
+    // 1) PUT THE SAME WEB APP URL HERE
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz3WmbuwCicVLQ37UGJ63F6eAJRFUtHNPkFsEnExo6vLw5dwaCY5i6uC3tKXjFDNvo6/exec';
+
     const params = new URLSearchParams(location.search);
     const selectedDate = params.get('date');
 
     async function fetchRows(){
-      const res = await fetch(`${API_URL}?mode=fetch`);
-      const data = await res.json();
-      return (data && data.ok) ? data.rows : [];
+      try{
+        const res = await fetch(`${API_URL}?mode=fetch`);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if(!data.ok) throw new Error(data.error || 'API not ok');
+        return data.rows || [];
+      }catch(err){
+        document.getElementById('selectedInfo').textContent = `Fetch failed: ${err.message}`;
+        return [];
+      }
     }
     function radiusArray(len, hit){ return Array.from({length: len}, (_,i)=> i===hit ? 6 : 3); }
     function band(labels, min, max, color){
