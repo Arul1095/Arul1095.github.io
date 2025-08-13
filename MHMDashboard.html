@@ -13,9 +13,8 @@
     .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.25); margin-bottom:20px;}
     h1{ margin:0 0 8px; font-size:24px;}
     canvas{ width:100%; height:340px; }
-    .row{ display:grid; grid-template-columns:1fr; gap:16px; }
+    .empty{ color:#9fb3c8; }
   </style>
-  <!-- Chart.js CDN (for simple charts) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -27,10 +26,9 @@
   <main class="container">
     <div class="card">
       <h1>Your Trends</h1>
-      <div class="row">
-        <canvas id="fbsChart"></canvas>
-        <canvas id="bpChart"></canvas>
-      </div>
+      <p id="selectedInfo" class="empty"></p>
+      <canvas id="fbsChart"></canvas>
+      <canvas id="bpChart" style="margin-top:18px;"></canvas>
     </div>
   </main>
 
@@ -41,16 +39,27 @@
     }
     const entries = readData();
     const labels = entries.map(e=>e.date);
-
-    // FBS
     const fbsVals = entries.map(e=>e.fbs);
-    // BP
     const sbpVals = entries.map(e=>e.sbp);
     const dbpVals = entries.map(e=>e.dbp);
 
-    // helper to add horizontal target bands via annotation (simple plugin-free trick using fills)
+    const params = new URLSearchParams(location.search);
+    const selectedDate = params.get('date');
+    const selectedIndex = selectedDate ? labels.indexOf(selectedDate) : -1;
+
+    const info = document.getElementById('selectedInfo');
+    if(selectedIndex >= 0){
+      const e = entries[selectedIndex];
+      info.textContent = `Selected: ${e.date} — FBS ${e.fbs} mg/dL, BP ${e.sbp}/${e.dbp} mmHg`;
+    } else {
+      info.textContent = labels.length ? "Tip: Click a date in the calendar to highlight it here." : "No data yet. Add entries on the Entry page.";
+    }
+
+    function radiusArray(len, hit){
+      return Array.from({length: len}, (_,i)=> i===hit ? 6 : 3);
+    }
+
     function band(min, max, color){
-      // Chart.js v4 supports scriptable background via 'plugins: {}' but we’ll use a dataset fill hack:
       return {
         type: 'line',
         label: 'Target',
@@ -65,14 +74,14 @@
       };
     }
 
-    // --- FBS chart ---
-    new Chart(document.getElementById('fbsChart'), {
+    // FBS chart
+    const fbsChart = new Chart(document.getElementById('fbsChart'), {
       type: 'line',
       data: {
         labels,
         datasets: [
-          band(70, 100, 'rgba(60, 160, 90, 0.12)'), // normal FBS band
-          { label: 'FBS', data: fbsVals, tension: 0.3 }
+          band(70, 100, 'rgba(60, 160, 90, 0.12)'),
+          { label: 'FBS', data: fbsVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) }
         ]
       },
       options: {
@@ -80,33 +89,41 @@
           title: { display: true, text: 'Fasting Blood Sugar (mg/dL)' },
           legend: { display: false }
         },
-        scales: {
-          y: { suggestedMin: 60, suggestedMax: 180 }
-        }
+        scales: { y: { suggestedMin: 60, suggestedMax: 180 } }
       }
     });
 
-    // --- BP chart ---
-    new Chart(document.getElementById('bpChart'), {
+    // BP chart
+    const bpChart = new Chart(document.getElementById('bpChart'), {
       type: 'line',
       data: {
         labels,
         datasets: [
-          band(60, 80, 'rgba(120, 170, 230, 0.10)'), // DBP target band
-          band(90, 120, 'rgba(230, 170, 120, 0.10)'), // SBP target band
-          { label: 'SBP', data: sbpVals, tension: 0.3 },
-          { label: 'DBP', data: dbpVals, tension: 0.3 }
+          band(60, 80, 'rgba(120, 170, 230, 0.10)'),   // DBP target
+          band(90, 120, 'rgba(230, 170, 120, 0.10)'),  // SBP target
+          { label: 'SBP', data: sbpVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) },
+          { label: 'DBP', data: dbpVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) }
         ]
       },
       options: {
-        plugins: {
-          title: { display: true, text: 'Blood Pressure (mmHg)' }
-        },
-        scales: {
-          y: { suggestedMin: 50, suggestedMax: 180 }
-        }
+        plugins: { title: { display: true, text: 'Blood Pressure (mmHg)' } },
+        scales: { y: { suggestedMin: 50, suggestedMax: 180 } }
       }
     });
+
+    // Auto-open tooltip on the selected point (if any)
+    function showTooltip(chart, datasetIndex, index){
+      if(index < 0) return;
+      chart.setActiveElements([{datasetIndex, index}]);
+      chart.tooltip.setActiveElements([{datasetIndex, index}], {x: 0, y: 0});
+      chart.update();
+    }
+    if(selectedIndex >= 0){
+      // FBS dataset index is 1 (index 0 is the band)
+      showTooltip(fbsChart, 1, selectedIndex);
+      // SBP dataset index is 2 (0 and 1 are bands)
+      showTooltip(bpChart, 2, selectedIndex);
+    }
   </script>
 </body>
 </html>
