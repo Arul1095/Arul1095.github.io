@@ -146,7 +146,7 @@
       const table = document.getElementById('calendarTable');
       table.innerHTML = html;
 
-      // Make cells clickable → go to dashboard highlighting that date
+      // Make cells clickable → go to dashboard highlighting that  date
       table.querySelectorAll('td[data-date]').forEach(td=>{
         td.addEventListener('click', ()=>{
           const d = td.getAttribute('data-date');
