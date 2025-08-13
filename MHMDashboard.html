@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Health Tracker — Dashboard</title>
+  <style>
+    :root { color-scheme: dark; }
+    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0b0f14; color:#e6edf3; }
+    header{ padding:20px; border-bottom:1px solid #1f2a34; display:flex; align-items:center; justify-content:space-between;}
+    a{ color:#7cc7ff; text-decoration:none; }
+    .container{ max-width:980px; margin:32px auto; padding:0 16px; }
+    .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.25); margin-bottom:20px;}
+    h1{ margin:0 0 8px; font-size:24px;}
+    canvas{ width:100%; height:340px; }
+    .row{ display:grid; grid-template-columns:1fr; gap:16px; }
+  </style>
+  <!-- Chart.js CDN (for simple charts) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <header>
+    <div><strong>Health Tracker</strong> — Dashboard</div>
+    <nav><a href="index.html">← Back to Entry</a></nav>
+  </header>
+
+  <main class="container">
+    <div class="card">
+      <h1>Your Trends</h1>
+      <div class="row">
+        <canvas id="fbsChart"></canvas>
+        <canvas id="bpChart"></canvas>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    function readData(){
+      try { return JSON.parse(localStorage.getItem('healthEntries')||'[]'); }
+      catch { return []; }
+    }
+    const entries = readData();
+    const labels = entries.map(e=>e.date);
+
+    // FBS
+    const fbsVals = entries.map(e=>e.fbs);
+    // BP
+    const sbpVals = entries.map(e=>e.sbp);
+    const dbpVals = entries.map(e=>e.dbp);
+
+    // helper to add horizontal target bands via annotation (simple plugin-free trick using fills)
+    function band(min, max, color){
+      // Chart.js v4 supports scriptable background via 'plugins: {}' but we’ll use a dataset fill hack:
+      return {
+        type: 'line',
+        label: 'Target',
+        data: (new Array(labels.length)).fill((min+max)/2),
+        borderWidth: 0,
+        pointRadius: 0,
+        fill: {
+          target: { value: min },
+          above: color,
+          below: color
+        }
+      };
+    }
+
+    // --- FBS chart ---
+    new Chart(document.getElementById('fbsChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          band(70, 100, 'rgba(60, 160, 90, 0.12)'), // normal FBS band
+          { label: 'FBS', data: fbsVals, tension: 0.3 }
+        ]
+      },
+      options: {
+        plugins: {
+          title: { display: true, text: 'Fasting Blood Sugar (mg/dL)' },
+          legend: { display: false }
+        },
+        scales: {
+          y: { suggestedMin: 60, suggestedMax: 180 }
+        }
+      }
+    });
+
+    // --- BP chart ---
+    new Chart(document.getElementById('bpChart'), {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          band(60, 80, 'rgba(120, 170, 230, 0.10)'), // DBP target band
+          band(90, 120, 'rgba(230, 170, 120, 0.10)'), // SBP target band
+          { label: 'SBP', data: sbpVals, tension: 0.3 },
+          { label: 'DBP', data: dbpVals, tension: 0.3 }
+        ]
+      },
+      options: {
+        plugins: {
+          title: { display: true, text: 'Blood Pressure (mmHg)' }
+        },
+        scales: {
+          y: { suggestedMin: 50, suggestedMax: 180 }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
