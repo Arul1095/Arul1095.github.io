@@ -6,21 +6,28 @@
   <title>Health Tracker — Dashboard</title>
   <style>
     :root { color-scheme: dark; }
-    body{ margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; background:#0b0f14; color:#e6edf3; }
-    header{ padding:20px; border-bottom:1px solid #1f2a34; display:flex; align-items:center; justify-content:space-between;}
+    body{ margin:0; font-family: system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; background:#0b0f14; color:#e6edf3; }
+    header{ position:sticky; top:0; z-index:10; backdrop-filter:saturate(120%) blur(4px);
+      background:rgba(11,15,20,.72); padding:14px 16px; border-bottom:1px solid #1f2a34; display:flex; align-items:center; justify-content:space-between;}
     a{ color:#7cc7ff; text-decoration:none; }
-    .container{ max-width:980px; margin:32px auto; padding:0 16px; }
-    .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.25); margin-bottom:20px;}
-    h1{ margin:0 0 8px; font-size:24px;}
-    canvas{ width:100%; height:340px; }
-    .empty{ color:#9fb3c8; }
+    .container{ max-width:980px; margin:16px auto 48px; padding:0 12px; }
+    .card{ background:#0f141b; border:1px solid #1f2a34; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25); }
+    h1{ margin:4px 0 10px; font-size:22px;}
+    .empty{ color:#9fb3c8; font-size:14px; margin:0 0 8px; }
+    canvas{ width:100%; height:300px; }
+    @media (min-width: 600px){
+      .container{ margin-top:24px; padding:0 16px; }
+      .card{ padding:24px; }
+      h1{ font-size:24px }
+      canvas{ height:340px; }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <header>
     <div><strong>Health Tracker</strong> — Dashboard</div>
-    <nav><a href="index.html">← Back to Entry</a></nav>
+    <nav><a href="index.html">← Entry</a></nav>
   </header>
 
   <main class="container">
@@ -28,102 +35,71 @@
       <h1>Your Trends</h1>
       <p id="selectedInfo" class="empty"></p>
       <canvas id="fbsChart"></canvas>
-      <canvas id="bpChart" style="margin-top:18px;"></canvas>
+      <canvas id="bpChart" style="margin-top:16px;"></canvas>
     </div>
   </main>
 
   <script>
-    function readData(){
-      try { return JSON.parse(localStorage.getItem('healthEntries')||'[]'); }
-      catch { return []; }
-    }
-    const entries = readData();
-    const labels = entries.map(e=>e.date);
-    const fbsVals = entries.map(e=>e.fbs);
-    const sbpVals = entries.map(e=>e.sbp);
-    const dbpVals = entries.map(e=>e.dbp);
-
+    const API_URL = 'PASTE_YOUR_WEB_APP_URL_HERE';
     const params = new URLSearchParams(location.search);
     const selectedDate = params.get('date');
-    const selectedIndex = selectedDate ? labels.indexOf(selectedDate) : -1;
 
-    const info = document.getElementById('selectedInfo');
-    if(selectedIndex >= 0){
-      const e = entries[selectedIndex];
-      info.textContent = `Selected: ${e.date} — FBS ${e.fbs} mg/dL, BP ${e.sbp}/${e.dbp} mmHg`;
-    } else {
-      info.textContent = labels.length ? "Tip: Click a date in the calendar to highlight it here." : "No data yet. Add entries on the Entry page.";
+    async function fetchRows(){
+      const res = await fetch(`${API_URL}?mode=fetch`);
+      const data = await res.json();
+      return (data && data.ok) ? data.rows : [];
+    }
+    function radiusArray(len, hit){ return Array.from({length: len}, (_,i)=> i===hit ? 6 : 3); }
+    function band(labels, min, max, color){
+      return { type:'line', label:'Target', data:(new Array(labels.length)).fill((min+max)/2),
+        borderWidth:0, pointRadius:0, fill:{ target:{value:min}, above:color, below:color } };
     }
 
-    function radiusArray(len, hit){
-      return Array.from({length: len}, (_,i)=> i===hit ? 6 : 3);
-    }
-
-    function band(min, max, color){
-      return {
-        type: 'line',
-        label: 'Target',
-        data: (new Array(labels.length)).fill((min+max)/2),
-        borderWidth: 0,
-        pointRadius: 0,
-        fill: {
-          target: { value: min },
-          above: color,
-          below: color
-        }
-      };
-    }
-
-    // FBS chart
-    const fbsChart = new Chart(document.getElementById('fbsChart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          band(70, 100, 'rgba(60, 160, 90, 0.12)'),
-          { label: 'FBS', data: fbsVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) }
-        ]
-      },
-      options: {
-        plugins: {
-          title: { display: true, text: 'Fasting Blood Sugar (mg/dL)' },
-          legend: { display: false }
-        },
-        scales: { y: { suggestedMin: 60, suggestedMax: 180 } }
+    (async function init(){
+      const rows = await fetchRows();
+      if(!rows.length){
+        document.getElementById('selectedInfo').textContent = 'No data yet. Add entries on the Entry page.';
+        return;
       }
-    });
+      rows.sort((a,b)=> a.date.localeCompare(b.date));
+      const labels = rows.map(r=>r.date);
+      const fbs = rows.map(r=>Number(r.fbs));
+      const sbp = rows.map(r=>Number(r.sbp));
+      const dbp = rows.map(r=>Number(r.dbp));
 
-    // BP chart
-    const bpChart = new Chart(document.getElementById('bpChart'), {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          band(60, 80, 'rgba(120, 170, 230, 0.10)'),   // DBP target
-          band(90, 120, 'rgba(230, 170, 120, 0.10)'),  // SBP target
-          { label: 'SBP', data: sbpVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) },
-          { label: 'DBP', data: dbpVals, tension: 0.3, pointRadius: radiusArray(labels.length, selectedIndex) }
-        ]
-      },
-      options: {
-        plugins: { title: { display: true, text: 'Blood Pressure (mmHg)' } },
-        scales: { y: { suggestedMin: 50, suggestedMax: 180 } }
+      const selIndex = selectedDate ? labels.indexOf(selectedDate) : -1;
+      const info = document.getElementById('selectedInfo');
+      if(selIndex>=0){ const r = rows[selIndex]; info.textContent = `Selected: ${r.date} — FBS ${r.fbs} mg/dL, BP ${r.sbp}/${r.dbp} mmHg`; }
+      else { info.textContent = "Tip: Click a date in the calendar to highlight it here."; }
+
+      const fbsChart = new Chart(document.getElementById('fbsChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+          band(labels,70,100,'rgba(60,160,90,0.12)'),
+          { label:'FBS', data:fbs, tension:.3, pointRadius:radiusArray(labels.length, selIndex) }
+        ]},
+        options:{ plugins:{ title:{display:true, text:'Fasting Blood Sugar (mg/dL)'}, legend:{display:false}}, scales:{ y:{ suggestedMin:60, suggestedMax:180 } } }
+      });
+
+      const bpChart = new Chart(document.getElementById('bpChart'), {
+        type:'line',
+        data:{ labels, datasets:[
+          band(labels,60,80,'rgba(120,170,230,0.10)'),
+          band(labels,90,120,'rgba(230,170,120,0.10)'),
+          { label:'SBP', data:sbp, tension:.3, pointRadius:radiusArray(labels.length, selIndex) },
+          { label:'DBP', data:dbp, tension:.3, pointRadius:radiusArray(labels.length, selIndex) }
+        ]},
+        options:{ plugins:{ title:{display:true, text:'Blood Pressure (mmHg)'} }, scales:{ y:{ suggestedMin:50, suggestedMax:180 } } }
+      });
+
+      function showTooltip(chart, datasetIndex, index){
+        if(index<0) return;
+        chart.setActiveElements([{datasetIndex,index}]);
+        chart.tooltip.setActiveElements([{datasetIndex,index}], {x:0,y:0});
+        chart.update();
       }
-    });
-
-    // Auto-open tooltip on the selected point (if any)
-    function showTooltip(chart, datasetIndex, index){
-      if(index < 0) return;
-      chart.setActiveElements([{datasetIndex, index}]);
-      chart.tooltip.setActiveElements([{datasetIndex, index}], {x: 0, y: 0});
-      chart.update();
-    }
-    if(selectedIndex >= 0){
-      // FBS dataset index is 1 (index 0 is the band)
-      showTooltip(fbsChart, 1, selectedIndex);
-      // SBP dataset index is 2 (0 and 1 are bands)
-      showTooltip(bpChart, 2, selectedIndex);
-    }
+      if(selIndex>=0){ showTooltip(fbsChart,1,selIndex); showTooltip(bpChart,2,selIndex); }
+    })();
   </script>
 </body>
 </html>
