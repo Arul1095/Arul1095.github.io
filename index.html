@@ -104,20 +104,42 @@
   </main>
 
   <script>
-    const API_URL = 'https://script.google.com/macros/s/AKfycbxc8qso8lPsqqnf0gWegHno_HTbQ1JSohkH-zLRXKbHmYV2oDwT1B-TlHGQh5djsv7z/exec'; // e.g., https://script.google.com/macros/s/XXXX/exec
+    // 1) PUT YOUR APPS SCRIPT WEB APP URL HERE (must end with /exec)
+    const API_URL = 'https://script.google.com/macros/s/AKfycbz3WmbuwCicVLQ37UGJ63F6eAJRFUtHNPkFsEnExo6vLw5dwaCY5i6uC3tKXjFDNvo6/exec';
 
     // Pre-fill today
     document.getElementById('date').valueAsDate = new Date();
 
     async function fetchRows(){
-      const res = await fetch(`${API_URL}?mode=fetch`);
-      const data = await res.json();
-      return (data && data.ok) ? data.rows : [];
+      try{
+        const res = await fetch(`${API_URL}?mode=fetch`);
+        if(!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if(!data.ok) throw new Error(data.error || 'API not ok');
+        return data.rows || [];
+      }catch(err){
+        document.getElementById('status').textContent = `Fetch failed: ${err.message}`;
+        return [];
+      }
     }
+
+    // *** FORM-ENCODED POST (no CORS preflight) ***
     async function saveRow(row){
-      const res = await fetch(API_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(row) });
-      const data = await res.json().catch(()=>({ok:false}));
-      return data.ok;
+      try{
+        const form = new URLSearchParams(row);
+        const res = await fetch(API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+          body: form.toString()
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error || 'API not ok');
+        return true;
+      }catch(err){
+        document.getElementById('status').textContent = `Save failed: ${err.message}`;
+        return false;
+      }
     }
 
     async function buildCalendar(){
@@ -164,9 +186,9 @@
       }
       document.getElementById('status').textContent = 'Saving…';
       const ok = await saveRow({ date, fbs, sbp, dbp, device: navigator.userAgent.slice(0,50) });
-      document.getElementById('status').textContent = ok ? 'Saved ✔' : 'Save failed. Check internet.';
+      document.getElementById('status').textContent = ok ? 'Saved ✔' : document.getElementById('status').textContent;
       if(ok) buildCalendar();
-      setTimeout(()=>document.getElementById('status').textContent='', 2000);
+      setTimeout(()=>document.getElementById('status').textContent='', 2500);
     });
 
     buildCalendar();
